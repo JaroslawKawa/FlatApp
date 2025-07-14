@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-4">Historia zakupów</h2>
+
+    {% if bought_items %}
+        <ul class="list-group">
+            {% for item in bought_items %}
+                <li class="list-group-item d-flex flex-column gap-2 py-3 bg-light">
+                    <div class="fs-5 fw-semibold">{{ item.name }}</div>
+                    {% if item.quantity %}
+                        <div class="fs-6 text-muted">{{ item.quantity }} {{ item.unit }}</div>
+                    {% endif %}
+                      <div class="fs-6 text-muted fst-italic">
+  Kupione przez {{ item.user.username }} — {{ item.bought_at|date:"Y-m-d H:i" }}
+</div>
+<form action="{% url 'delete_item' item.id %}" method="post" class="mt-2 delete-form">
+  {% csrf_token %}
+  <button type="button" class="btn btn-danger delete-btn w-100">Usuń</button>
+</form>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p class="text-center fs-5">Brak historii zakupów.</p>
+    {% endif %}
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('form.delete-form').forEach(form => {
+    const deleteBtn = form.querySelector('button.delete-btn');
+    let clickedOnce = false;
+
+    deleteBtn.addEventListener('click', () => {
+      if (!clickedOnce) {
+        deleteBtn.textContent = 'Naciśnij jeszcze raz żeby usunąć';
+        deleteBtn.classList.add('btn-warning');
+        deleteBtn.classList.remove('btn-danger');
+        clickedOnce = true;
+
+        // Po 3 sekundach resetujemy przycisk do stanu początkowego
+        setTimeout(() => {
+          clickedOnce = false;
+          deleteBtn.textContent = 'Usuń';
+          deleteBtn.classList.remove('btn-warning');
+          deleteBtn.classList.add('btn-danger');
+        }, 3000);
+
+      } else {
+        form.submit();
+      }
+    });
+  });
+});
+</script>
+
+{% endblock %}
