@@ -8,7 +8,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key')
 
 DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '').split(',')  # np. ustaw w Render: ALLOWED_HOSTS=myapp.onrender.com
+ALLOWED_HOSTS = ['flatapp.onrender.com', 'localhost', '127.0.0.1']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
