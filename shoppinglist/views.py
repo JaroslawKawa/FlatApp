@@ -1,6 +1,5 @@
 from django.views import View
 from django.views.generic import TemplateView, ListView, DeleteView
-from django.views.generic.edit import FormView
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.utils import timezone
@@ -11,17 +10,17 @@ from django.urls import reverse_lazy
 class ShoppingListView(LoginRequiredMixin, View):
     template_name = 'shopping_list.html'
 
-    def get(self, request, selected_category=None):
+    def get(self, request):
+        selected_category = request.GET.get("category")
         categories = Category.objects.all()
 
-        # Jeśli wybrano kategorię, filtrujemy produkty
         if selected_category:
             items = ShoppingItem.objects.filter(
-                user=request.user, bought=False, category_id=selected_category
+                bought=False, category_id=selected_category
             ).select_related('category')
         else:
             items = ShoppingItem.objects.filter(
-                user=request.user, bought=False
+                bought=False
             ).select_related('category')
 
         categorized_items = defaultdict(list)
@@ -52,23 +51,19 @@ class ShoppingListView(LoginRequiredMixin, View):
                 category=category,
                 user=request.user
             )
-
-        # Po dodaniu renderujemy stronę GET z wybraną kategorią, by zapamiętać wybór
-        return self.get(request, selected_category=category_id)
-
+        return redirect('shopping_list')
 
 class MarkAsBoughtView(LoginRequiredMixin, View):
     def post(self, request, item_id):
-        item = get_object_or_404(ShoppingItem, id=item_id, user=request.user)
+        item = get_object_or_404(ShoppingItem, id=item_id)
         item.bought = True
         item.bought_at = timezone.now()
         item.save()
         return redirect('shopping_list')
 
-
 class ToggleInCartView(LoginRequiredMixin, View):
     def post(self, request, item_id):
-        item = get_object_or_404(ShoppingItem, id=item_id, user=request.user)
+        item = get_object_or_404(ShoppingItem, id=item_id)
         item.in_cart = not item.in_cart
         item.save()
         return redirect('shopping_list')
@@ -81,15 +76,13 @@ class ShoppingHistoryView(LoginRequiredMixin, ListView):
 
     def get_queryset(self):
         return ShoppingItem.objects.filter(
-            user=self.request.user,
             bought=True
         ).order_by('-bought_at')
 
 class ShoppingItemDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     model = ShoppingItem
-    template_name = 'shoppingitem_confirm_delete.html'  # możesz stworzyć prosty szablon potwierdzenia lub pominąć
+    template_name = 'shoppingitem_confirm_delete.html'
     success_url = reverse_lazy('shopping_history')
 
     def test_func(self):
-        item = self.get_object()
-        return item.user == self.request.user
+        return True
