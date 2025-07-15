@@ -1,14 +1,14 @@
 import os
 from pathlib import Path
-import dj_database_url
+import dj_database_url  # potrzebne do obsługi bazy PostgreSQL
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key')
+SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-secret-key')  # Render ustawia to jako zmienną środowiskową
 
-DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 'yes')
+DEBUG = os.environ.get('DEBUG', '') != 'False'
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['.onrender.com', 'localhost', '127.0.0.1']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -18,11 +18,12 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'shoppinglist',
+    'whitenoise.runserver_nostatic',  # żeby obsługiwać statyczne pliki
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',  # Whitenoise do statycznych plików
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # do obsługi statycznych plików na Render
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -51,12 +52,17 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'shoppinglist.wsgi.application'
 
-# Konfiguracja bazy danych z DATABASE_URL od Render
-DATABASES = {
-    'default': dj_database_url.config(
-        default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}"
-    )
-}
+if os.environ.get('DATABASE_URL'):
+    DATABASES = {
+        'default': dj_database_url.config(conn_max_age=600, ssl_require=True)
+    }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 AUTH_PASSWORD_VALIDATORS = []
 
@@ -69,15 +75,14 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'  # Whitenoise wymaga STATIC_ROOT
 
-STATICFILES_DIRS = [BASE_DIR / "static"]
+# Produkcyjne ustawienia plików statycznych
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_DIRS = [BASE_DIR / 'static']
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/login/'
-
-# Whitenoise - cache control statycznych plików (opcjonalnie)
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
